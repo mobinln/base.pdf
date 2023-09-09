@@ -1,35 +1,20 @@
-import { useState } from "react";
+import PDF from "./logic/pdf";
+import { longText } from "./mock/text";
 
 import "./styles/global.css";
 
 function App() {
-  const [count, setCount] = useState(0);
+  const handleDownload = async () => {
+    const pdf = new PDF({ cursor: { x: 10, y: 10 } });
+
+    pdf.add_text(longText, { fontSize: 20 });
+
+    pdf.generate();
+  };
 
   return (
     <>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>count is {count}</button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <h1>Some heading</h1>
-      <table>
-        <thead>
-          <tr>
-            <th>Col 1</th>
-            <th>Col 2</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Data 1</td>
-            <td>Data 2</td>
-          </tr>
-        </tbody>
-      </table>
-      <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
+      <button onClick={() => handleDownload()}>download</button>
     </>
   );
 }
