@@ -1,5 +1,6 @@
 import html2canvas from "html2canvas";
 import jsPDF, { jsPDFOptions } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type marginType = { top?: number; right?: number; bottom?: number; left?: number };
 
@@ -46,8 +47,8 @@ export default class PDF {
     return { width, height };
   }
 
-  public async take_snapshot(element: HTMLElement, options?: { width?: number; height?: number }) {
-    const canvas = await html2canvas(element, {
+  public async take_snapshot(element: HTMLElement | Element, options?: { width?: number; height?: number }) {
+    const canvas = await html2canvas(element as HTMLElement, {
       allowTaint: true,
       useCORS: true,
       ...options,
@@ -60,33 +61,53 @@ export default class PDF {
     element,
     ...other
   }: {
-    element: HTMLElement;
+    element: HTMLElement | Element;
     width?: number;
     height?: number;
     margin?: marginType;
   }) {
     const { data, height, width } = await this.take_snapshot(element, { ...other });
 
-    const newPage = this.paginate({
-      height: height + (other.margin?.top || 0),
+    const imageWidth = this.get_page_dimensions().width - 10;
+    const imageHeight = (height * imageWidth) / width;
+
+    this.paginate({
+      height: imageHeight + (other.margin?.top || 0),
       marginTop: 0,
     });
 
-    const positionY = newPage ? 10 : this.cursor.y + (other.margin?.top || 0);
-    this.jspdf_instance.addImage(data, "JPEG", this.cursor.x + (other.margin?.left || 0), positionY, width, height);
-    this.cursor.y += height + (other.margin?.top || 0);
+    this.jspdf_instance.addImage(
+      data,
+      "JPEG",
+      this.cursor.x + (other.margin?.left || 0),
+      this.cursor.y + (other.margin?.top || 0),
+      imageWidth,
+      imageHeight
+    );
+    this.cursor.y += imageHeight + (other.margin?.top || 0);
   }
 
-  public add_list() {
-    // TODO: add list of html elements to pdf
+  public async add_list(children: HTMLCollection) {
+    for (const element of children) {
+      await this.add_element({ element });
+    }
   }
 
-  public add_table() {
-    // TODO: add table to pdf using jspdf-autotable
+  public add_table({ html, marginTop }: { html: HTMLTableElement; marginTop?: number }) {
+    autoTable(this.jspdf_instance, {
+      html,
+      startY: this.cursor.y + (marginTop || 0),
+    });
   }
 
-  public add_image() {
-    // TODO: add image to pdf
+  public add_image(
+    imageData: string | HTMLImageElement | HTMLCanvasElement | Uint8Array,
+    format: "image/png" | "image/jpg" | "image/jpeg",
+    width: number,
+    height: number
+  ) {
+    this.jspdf_instance.addImage(imageData, format, this.cursor.x, this.cursor.y, width, height);
+    this.cursor.y += height;
   }
 
   public add_text(
